@@ -7,14 +7,33 @@ import subprocess
 rev = 2   # TODO: get real value from somewhere
 
 
+class DiffTransformer(object):
+
+	def transform_line(self, line):
+		if line.startswith('diff --git '):
+			m = re.search(r'^diff --git (.+) \1$', line)
+			self.filename = m.group(1)
+			return 'Index: ' + self.filename
+		elif line.startswith('index '):
+			return re.sub(r'^index .+$', 67*'=', line)
+		elif line == '--- /dev/null':
+			return '--- %s\t(revision 0)' % self.filename
+		elif line.startswith('--- '):
+			return re.sub(r'^(--- .+)$', r'\1\t(revision %d)' % rev, line)
+		elif line.startswith('+++ '):
+			return re.sub(r'^(\+\+\+ .+)$', r'\1\t(working copy)', line)
+		elif line.startswith('new file mode '):
+			return None
+		else:
+			return line
+
+
 def main():
-	output = subprocess.check_output(['git', 'diff', '--no-prefix'])
+	output = subprocess.check_output(['git', 'diff', '--no-prefix', 'HEAD'])
 	lines = output.split('\n')
+	transformer = DiffTransformer()
 	for line in lines:
-		line = re.sub(r'^diff --git (.+) \1$', r'Index: \1', line)
-		line = re.sub(r'^index .+$', 67*'=', line)
-		line = re.sub(r'^(--- .+)$', r'\1\t(revision %d)' % rev, line)
-		line = re.sub(r'^(\+\+\+ .+)$', r'\1\t(working copy)', line)
+		line = transformer.transform_line(line)
 		if line:
 			print(line)
 

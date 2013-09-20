@@ -5,6 +5,7 @@ import subprocess
 import unittest
 from impl.git import GitImpl
 import cases.multiple_changes
+import cases.file_added
 
 
 class Test(unittest.TestCase):
@@ -15,7 +16,7 @@ class Test(unittest.TestCase):
 	def tearDown(self):
 		pass
 
-	def testName(self):
+	def testMultipleChanges(self):
 		git_impl = GitImpl()
 		cases.multiple_changes.run(git_impl)
 		# TODO: resolve path
@@ -35,6 +36,29 @@ Index: b
 @@ -1 +1 @@
 -Content of file b
 +Changed content of file b
+'''
+		with open(os.path.join(git_impl.temp_path, 'git-svn-diff.output'), 'w') as f:
+			f.write(output)
+		with open(os.path.join(git_impl.temp_path, 'svn-diff.output'), 'w') as f:
+			f.write(expected_output)
+		self.assertEqual(expected_output, output)
+
+
+	def testFileAdded(self):
+		git_impl = GitImpl()
+		cases.file_added.run(git_impl)
+		# TODO: resolve path
+		output = subprocess.check_output(["/home/erdavila/Projetos/git-svn-diff/git_svn_diff.py"], cwd=git_impl.client_path)
+		expected_output = \
+'''Index: file
+===================================================================
+--- file	(revision 0)
++++ file	(working copy)
+@@ -0,0 +1,3 @@
++Content of file a
++
++The last line
+\ No newline at end of file
 '''
 		with open(os.path.join(git_impl.temp_path, 'git-svn-diff.output'), 'w') as f:
 			f.write(output)
