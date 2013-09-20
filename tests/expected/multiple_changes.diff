@@ -1,0 +1,14 @@
+Index: a
+===================================================================
+--- a	(revision 2)
++++ a	(working copy)
+@@ -1 +1,2 @@
+ Content of file a
++A new line at the end
+Index: b
+===================================================================
+--- b	(revision 2)
++++ b	(working copy)
+@@ -1 +1 @@
+-Content of file b
++Changed content of file b

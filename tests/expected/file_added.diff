@@ -1,0 +1,9 @@
+Index: file
+===================================================================
+--- file	(revision 0)
++++ file	(working copy)
+@@ -0,0 +1,3 @@
++Content of file a
++
++The last line
+\ No newline at end of file

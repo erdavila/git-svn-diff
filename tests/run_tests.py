@@ -7,6 +7,17 @@ from impl.git import GitImpl
 import cases.multiple_changes
 import cases.file_added
 
+MY_DIRECTORY, _ = os.path.split(__file__)
+COMMAND_PATH = os.path.abspath(os.path.join(MY_DIRECTORY, '..', 'git_svn_diff.py'))
+
+def load_file(filename):
+	with open(filename) as f:
+		return f.read()
+
+def save_file(filename, content):
+	with open(filename, 'w') as f:
+		f.write(content)
+
 
 class Test(unittest.TestCase):
 
@@ -16,55 +27,27 @@ class Test(unittest.TestCase):
 	def tearDown(self):
 		pass
 
-	def testMultipleChanges(self):
+	def assertDiffTransformation(self, case_module, expected_output_file):
+		expected_output_file = os.path.join(MY_DIRECTORY, 'expected', expected_output_file + '.diff')
+		expected_output = load_file(expected_output_file)
+
 		git_impl = GitImpl()
-		cases.multiple_changes.run(git_impl)
-		# TODO: resolve path
-		output = subprocess.check_output(["/home/erdavila/Projetos/git-svn-diff/git_svn_diff.py"], cwd=git_impl.client_path)
-		expected_output = \
-'''Index: a
-===================================================================
---- a	(revision 2)
-+++ a	(working copy)
-@@ -1 +1,2 @@
- Content of file a
-+A new line at the end
-Index: b
-===================================================================
---- b	(revision 2)
-+++ b	(working copy)
-@@ -1 +1 @@
--Content of file b
-+Changed content of file b
-'''
-		with open(os.path.join(git_impl.temp_path, 'git-svn-diff.output'), 'w') as f:
-			f.write(output)
-		with open(os.path.join(git_impl.temp_path, 'svn-diff.output'), 'w') as f:
-			f.write(expected_output)
+		case_module.run(git_impl)
+
+		output = subprocess.check_output([COMMAND_PATH], cwd=git_impl.client_path)
+
+		save_file(os.path.join(git_impl.temp_path, 'git-svn-diff.output'), output)
+		save_file(os.path.join(git_impl.temp_path, 'svn-diff.output'), expected_output)
+
 		self.assertEqual(expected_output, output)
 
+	def testMultipleChanges(self):
+		expected_output_file = 'multiple_changes'
+		self.assertDiffTransformation(cases.multiple_changes, expected_output_file)
 
 	def testFileAdded(self):
-		git_impl = GitImpl()
-		cases.file_added.run(git_impl)
-		# TODO: resolve path
-		output = subprocess.check_output(["/home/erdavila/Projetos/git-svn-diff/git_svn_diff.py"], cwd=git_impl.client_path)
-		expected_output = \
-'''Index: file
-===================================================================
---- file	(revision 0)
-+++ file	(working copy)
-@@ -0,0 +1,3 @@
-+Content of file a
-+
-+The last line
-\ No newline at end of file
-'''
-		with open(os.path.join(git_impl.temp_path, 'git-svn-diff.output'), 'w') as f:
-			f.write(output)
-		with open(os.path.join(git_impl.temp_path, 'svn-diff.output'), 'w') as f:
-			f.write(expected_output)
-		self.assertEqual(expected_output, output)
+		expected_output_file = 'file_added'
+		self.assertDiffTransformation(cases.file_added, expected_output_file)
 
 
 if __name__ == "__main__":
