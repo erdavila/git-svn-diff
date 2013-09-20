@@ -23,6 +23,9 @@ class SvnImpl(object):
 	def add_new_file(self, *files):
 		subprocess.check_call(['svn', 'add'] + list(files), cwd=self.client_path)
 
+	def remove_file(self, *files):
+		subprocess.check_call(['svn', 'delete'] + list(files), cwd=self.client_path)
+
 	def commit_all(self, message):
 		subprocess.check_call(['svn', 'commit', '-m', message], cwd=self.client_path)
 		subprocess.check_call(['svn', 'up'], cwd=self.client_path)

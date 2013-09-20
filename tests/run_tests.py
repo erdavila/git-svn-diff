@@ -6,6 +6,7 @@ import unittest
 from impl.git import GitImpl
 import cases.multiple_changes
 import cases.file_added
+import cases.file_emptied_or_removed
 
 MY_DIRECTORY, _ = os.path.split(__file__)
 COMMAND_PATH = os.path.abspath(os.path.join(MY_DIRECTORY, '..', 'git_svn_diff.py'))
@@ -48,6 +49,10 @@ class Test(unittest.TestCase):
 	def testFileAdded(self):
 		expected_output_file = 'file_added'
 		self.assertDiffTransformation(cases.file_added, expected_output_file)
+
+	def testFileEmptiedOrRemoved(self):
+		expected_output_file = 'file_emptied_or_removed'
+		self.assertDiffTransformation(cases.file_emptied_or_removed, expected_output_file)
 
 
 if __name__ == "__main__":

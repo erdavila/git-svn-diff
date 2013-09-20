@@ -16,13 +16,17 @@ class DiffTransformer(object):
 			return 'Index: ' + self.filename
 		elif line.startswith('index '):
 			return re.sub(r'^index .+$', 67*'=', line)
-		elif line == '--- /dev/null':
-			return '--- %s\t(revision 0)' % self.filename
 		elif line.startswith('--- '):
-			return re.sub(r'^(--- .+)$', r'\1\t(revision %d)' % rev, line)
+			if line == '--- /dev/null':
+				return '--- %s\t(revision 0)' % self.filename
+			else:
+				return re.sub(r'^(--- .+)$', r'\1\t(revision %d)' % rev, line)
 		elif line.startswith('+++ '):
-			return re.sub(r'^(\+\+\+ .+)$', r'\1\t(working copy)', line)
-		elif line.startswith('new file mode '):
+			if line == '+++ /dev/null':
+				return '+++ %s\t(working copy)' % self.filename
+			else:
+				return re.sub(r'^(\+\+\+ .+)$', r'\1\t(working copy)', line)
+		elif line.startswith('new file mode ') or line.startswith('deleted file mode '):
 			return None
 		else:
 			return line

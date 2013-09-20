@@ -23,6 +23,9 @@ class GitImpl(object):
 	def add_new_file(self, *files):
 		subprocess.check_call(['git', 'add'] + list(files), cwd=self.client_path)
 
+	def remove_file(self, *files):
+		subprocess.check_call(['git', 'rm'] + list(files), cwd=self.client_path)
+
 	def commit_all(self, message):
 		subprocess.check_call(['git', 'commit', '-a', '-m', message], cwd=self.client_path)
 		subprocess.check_call(['git', 'svn', 'dcommit'], cwd=self.client_path)
