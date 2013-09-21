@@ -30,8 +30,18 @@ class GitImpl(object):
 		subprocess.check_call(['git', 'commit', '-a', '-m', message], cwd=self.client_path)
 		subprocess.check_call(['git', 'svn', 'dcommit'], cwd=self.client_path)
 
-	def diff(self):
+	def diff(self, *revs):
+		assert len(revs) <= 1
+
+		if len(revs) == 0:
+			revisions = ['HEAD']
+		else:
+			commit = subprocess.check_output(['git', 'svn', 'find-rev', 'r%d' % revs[0]], cwd=self.client_path)
+			commit = commit.strip()
+			assert commit != ''
+			revisions = [commit]
+
 		diff_file = os.path.join(self.temp_path, 'git.diff')
 		with open(diff_file, 'w') as f:
-			subprocess.check_call(['git', 'diff', 'HEAD'], cwd=self.client_path, stdout=f)
+			subprocess.check_call(['git', 'diff', '--no-prefix'] + revisions, cwd=self.client_path, stdout=f)
 		return diff_file

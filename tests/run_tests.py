@@ -7,6 +7,7 @@ from impl.git import GitImpl
 import cases.multiple_changes
 import cases.file_added
 import cases.file_emptied_or_removed
+import cases.one_revision_parameter_r1
 
 MY_DIRECTORY, _ = os.path.split(__file__)
 COMMAND_PATH = os.path.abspath(os.path.join(MY_DIRECTORY, '..', 'git_svn_diff.py'))
@@ -33,9 +34,13 @@ class Test(unittest.TestCase):
 		expected_output = load_file(expected_output_file)
 
 		git_impl = GitImpl()
-		case_module.run(git_impl)
+		revs = case_module.run(git_impl)
+		if revs:
+			revision_args = ['-r', str(revs[0])]
+		else:
+			revision_args = []
 
-		output = subprocess.check_output([COMMAND_PATH], cwd=git_impl.client_path)
+		output = subprocess.check_output([COMMAND_PATH] + revision_args, cwd=git_impl.client_path)
 
 		save_file(os.path.join(git_impl.temp_path, 'git-svn-diff.output'), output)
 		save_file(os.path.join(git_impl.temp_path, 'svn-diff.output'), expected_output)
@@ -53,6 +58,10 @@ class Test(unittest.TestCase):
 	def testFileEmptiedOrRemoved(self):
 		expected_output_file = 'file_emptied_or_removed'
 		self.assertDiffTransformation(cases.file_emptied_or_removed, expected_output_file)
+
+	def testOneRevisionParameterR1(self):
+		expected_output_file = 'one_revision_parameter_r1'
+		self.assertDiffTransformation(cases.one_revision_parameter_r1, expected_output_file)
 
 
 if __name__ == "__main__":

@@ -30,8 +30,14 @@ class SvnImpl(object):
 		subprocess.check_call(['svn', 'commit', '-m', message], cwd=self.client_path)
 		subprocess.check_call(['svn', 'up'], cwd=self.client_path)
 
-	def diff(self):
+	def diff(self, *revs):
+		assert len(revs) <= 1, len(revs)
+		cmd = 'LANG=en_US.UTF-8 '  # Make sure output is in english
+		cmd += 'svn diff'
+		if len(revs) == 1:
+			cmd += ' -r %d' % revs[0]
+
 		diff_file = os.path.join(self.temp_path, 'svn.diff')
 		with open(diff_file, 'w') as f:
-			subprocess.check_call(['svn', 'diff'], cwd=self.client_path, stdout=f)
+			subprocess.check_call(cmd, cwd=self.client_path, stdout=f, shell=True)
 		return diff_file

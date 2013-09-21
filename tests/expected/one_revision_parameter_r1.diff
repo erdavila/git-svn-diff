@@ -1,0 +1,24 @@
+Index: a
+===================================================================
+--- a	(revision 0)
++++ a	(working copy)
+@@ -0,0 +1 @@
++Content of file a in revision 3
+Index: b
+===================================================================
+--- b	(revision 0)
++++ b	(working copy)
+@@ -0,0 +1 @@
++Content of file b in working dir
+Index: c
+===================================================================
+--- c	(revision 0)
++++ c	(working copy)
+@@ -0,0 +1 @@
++Content of file c in working dir
+Index: d
+===================================================================
+--- d	(revision 0)
++++ d	(working copy)
+@@ -0,0 +1 @@
++Content of file d in working dir
