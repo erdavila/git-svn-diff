@@ -1,0 +1,30 @@
+The comparison is made against the working copy, but SVN mentions "revision 3"
+even for a file that was changed in the working copy (c).
+
+
+Index: c
+===================================================================
+--- c	(revision 0)
++++ c	(revision 3)
+@@ -0,0 +1 @@
++Content of file c in working dir
+Index: a
+===================================================================
+--- a	(revision 2)
++++ a	(working copy)
+@@ -1 +1 @@
+-Content of file a in revision 2
++Content of file a in revision 3
+Index: b
+===================================================================
+--- b	(revision 3)
++++ b	(working copy)
+@@ -1 +1 @@
+-Content of file b in revision 2
++Content of file b in working dir
+Index: d
+===================================================================
+--- d	(revision 0)
++++ d	(working copy)
+@@ -0,0 +1 @@
++Content of file d in working dir

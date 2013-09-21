@@ -38,7 +38,8 @@ def main():
 	else:
 		commit = revision_to_commit(revision)
 
-	output = subprocess.check_output(['git', 'diff', '--no-prefix', commit])
+	cmd = ['git', 'diff', '--no-prefix', commit]
+	output = subprocess.check_output(cmd)
 	lines = output.splitlines()
 	transformer = DiffTransformer(revision)
 	for line in lines:

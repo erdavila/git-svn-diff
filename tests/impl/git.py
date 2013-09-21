@@ -43,5 +43,6 @@ class GitImpl(object):
 
 		diff_file = os.path.join(self.temp_path, 'git.diff')
 		with open(diff_file, 'w') as f:
-			subprocess.check_call(['git', 'diff', '--no-prefix'] + revisions, cwd=self.client_path, stdout=f)
+			cmd = ['git', 'diff', '--no-prefix'] + revisions
+			subprocess.check_call(cmd, cwd=self.client_path, stdout=f)
 		return diff_file
