@@ -1,0 +1,18 @@
+Index: a
+===================================================================
+--- a	(revision 0)
++++ a	(revision 3)
+@@ -0,0 +1 @@
++Content of file a in revision 3
+Index: b
+===================================================================
+--- b	(revision 0)
++++ b	(revision 3)
+@@ -0,0 +1 @@
++Content of file b in revision 2
+Index: c
+===================================================================
+--- c	(revision 0)
++++ c	(revision 3)
+@@ -0,0 +1 @@
++Content of file c in revision 3

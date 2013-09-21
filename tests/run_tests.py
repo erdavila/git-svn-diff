@@ -10,6 +10,8 @@ import cases.one_revision_parameter_r1
 import cases.one_revision_parameter_r2
 import cases.one_revision_parameter_r3
 import cases.two_revision_parameters_r1_r2
+import cases.two_revision_parameters_r1_r3
+import cases.two_revision_parameters_r2_r3
 
 MY_DIRECTORY, _ = os.path.split(__file__)
 COMMAND_PATH = os.path.abspath(os.path.join(MY_DIRECTORY, '..', 'git_svn_diff.py'))
@@ -77,6 +79,14 @@ class Test(unittest.TestCase):
 	def testTwoRevisionParametersR1R2(self):
 		expected_output_file = 'two_revision_parameters_r1_r2'
 		self.assertDiffTransformation(cases.two_revision_parameters_r1_r2, expected_output_file)
+
+	def testTwoRevisionParametersR1R3(self):
+		expected_output_file = 'two_revision_parameters_r1_r3'
+		self.assertDiffTransformation(cases.two_revision_parameters_r1_r3, expected_output_file)
+
+	def testTwoRevisionParametersR2R3(self):
+		expected_output_file = 'two_revision_parameters_r2_r3'
+		self.assertDiffTransformation(cases.two_revision_parameters_r2_r3, expected_output_file)
 
 
 if __name__ == "__main__":
