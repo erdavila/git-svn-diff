@@ -6,8 +6,9 @@ import subprocess
 
 class DiffTransformer(object):
 
-	def __init__(self, revision):
-		self.revision = revision
+	def __init__(self, revision1, revision2):
+		self.revision1 = revision1
+		self.revision2 = revision2
 
 	def transform_line(self, line):
 		if line.startswith('diff --git '):
@@ -20,10 +21,14 @@ class DiffTransformer(object):
 			if line == '--- /dev/null':
 				rev = 0
 			else:
-				rev = self.revision
+				rev = self.revision1
 			return '--- %s\t(revision %d)' % (self.filename, rev)
 		elif line.startswith('+++ '):
-			return '+++ %s\t(working copy)' % self.filename
+			if self.revision2 is None:
+				rev_str = 'working copy'
+			else:
+				rev_str = 'revision %d' % self.revision2
+			return '+++ %s\t(%s)' % (self.filename, rev_str)
 		elif line.startswith('new file mode ') or line.startswith('deleted file mode '):
 			return None
 		else:
@@ -31,17 +36,24 @@ class DiffTransformer(object):
 
 
 def main():
-	revision = process_arguments()
-	if revision is None:
-		commit = 'HEAD'
-		revision =  commit_to_revision(commit)
+	revision1, revision2, verbose = process_arguments()
+	if revision1 is None:
+		assert revision2 is None, revision2
+		commits = ['HEAD']
+		revision1 =  commit_to_revision('HEAD')
 	else:
-		commit = revision_to_commit(revision)
+		commits = [revision_to_commit(revision1)]
+		if revision2 is not None:
+			commits.append(revision_to_commit(revision2))
 
-	cmd = ['git', 'diff', '--no-prefix', commit]
+	cmd = ['git', 'diff', '--no-prefix'] + commits
+	if verbose:
+		import sys
+		print('Executing %r' % cmd, file=sys.stderr)
 	output = subprocess.check_output(cmd)
+
 	lines = output.splitlines()
-	transformer = DiffTransformer(revision)
+	transformer = DiffTransformer(revision1, revision2)
 	for line in lines:
 		line = transformer.transform_line(line)
 		if line is not None:
@@ -49,7 +61,9 @@ def main():
 
 
 def process_arguments():
-	revision = None
+	revision1 = None
+	revision2 = None
+	verbose = False
 
 	import sys
 	args = sys.argv[1:]
@@ -60,13 +74,17 @@ def process_arguments():
 				raise Exception('Missing revision argument')
 			arg = args.pop(0)
 			if re.match(r'\d+$', arg):
-				revision = int(arg)
+				revision1 = int(arg)
+			elif re.match(r'\d+:\d+$', arg):
+				revision1, revision2 =  (int(rev) for rev in arg.split(':'))
 			else:
 				raise Exception('Invalid revision: %r' % arg)
+		elif arg == '-v':
+			verbose = True
 		else:
 			raise Exception('Unknown argument: %r' % arg)
 
-	return revision
+	return revision1, revision2, verbose
 
 
 def revision_to_commit(revision):

@@ -9,6 +9,7 @@ import cases.file_emptied_or_removed
 import cases.one_revision_parameter_r1
 import cases.one_revision_parameter_r2
 import cases.one_revision_parameter_r3
+import cases.two_revision_parameters_r1_r2
 
 MY_DIRECTORY, _ = os.path.split(__file__)
 COMMAND_PATH = os.path.abspath(os.path.join(MY_DIRECTORY, '..', 'git_svn_diff.py'))
@@ -37,15 +38,15 @@ class Test(unittest.TestCase):
 		git_impl = GitImpl()
 		revs = case_module.run(git_impl)
 		if revs:
-			revision_args = ['-r', str(revs[0])]
+			revision_args = ['-r', ':'.join(str(rev) for rev in revs)]
 		else:
 			revision_args = []
 
-		cmd = [COMMAND_PATH] + revision_args
+		cmd = [COMMAND_PATH, '-v'] + revision_args
 		output = subprocess.check_output(cmd, cwd=git_impl.client_path)
 
-		save_file(os.path.join(git_impl.temp_path, 'git-svn-diff.output'), output)
-		save_file(os.path.join(git_impl.temp_path, 'svn-diff.output'), expected_output)
+		save_file(os.path.join(git_impl.temp_path, 'git-svn.diff'), output)
+		save_file(os.path.join(git_impl.temp_path, 'svn.diff'), expected_output)
 
 		self.assertEqual(expected_output, output)
 
@@ -72,6 +73,10 @@ class Test(unittest.TestCase):
 	def testOneRevisionParameterR3(self):
 		expected_output_file = 'one_revision_parameter_r3'
 		self.assertDiffTransformation(cases.one_revision_parameter_r3, expected_output_file)
+
+	def testTwoRevisionParametersR1R2(self):
+		expected_output_file = 'two_revision_parameters_r1_r2'
+		self.assertDiffTransformation(cases.two_revision_parameters_r1_r2, expected_output_file)
 
 
 if __name__ == "__main__":
