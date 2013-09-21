@@ -29,3 +29,9 @@ class GitImpl(object):
 	def commit_all(self, message):
 		subprocess.check_call(['git', 'commit', '-a', '-m', message], cwd=self.client_path)
 		subprocess.check_call(['git', 'svn', 'dcommit'], cwd=self.client_path)
+
+	def diff(self):
+		diff_file = os.path.join(self.temp_path, 'git.diff')
+		with open(diff_file, 'w') as f:
+			subprocess.check_call(['git', 'diff', 'HEAD'], cwd=self.client_path, stdout=f)
+		return diff_file

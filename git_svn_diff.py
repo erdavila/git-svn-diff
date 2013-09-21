@@ -33,11 +33,11 @@ class DiffTransformer(object):
 def main():
 	revision = get_head_revision()
 	output = subprocess.check_output(['git', 'diff', '--no-prefix', 'HEAD'])
-	lines = output.split('\n')
+	lines = output.splitlines()
 	transformer = DiffTransformer(revision)
 	for line in lines:
 		line = transformer.transform_line(line)
-		if line:
+		if line is not None:
 			print(line)
 
 

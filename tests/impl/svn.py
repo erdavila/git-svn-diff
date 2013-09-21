@@ -29,3 +29,9 @@ class SvnImpl(object):
 	def commit_all(self, message):
 		subprocess.check_call(['svn', 'commit', '-m', message], cwd=self.client_path)
 		subprocess.check_call(['svn', 'up'], cwd=self.client_path)
+
+	def diff(self):
+		diff_file = os.path.join(self.temp_path, 'svn.diff')
+		with open(diff_file, 'w') as f:
+			subprocess.check_call(['svn', 'diff'], cwd=self.client_path, stdout=f)
+		return diff_file

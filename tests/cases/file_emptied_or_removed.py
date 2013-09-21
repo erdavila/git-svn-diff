@@ -6,3 +6,5 @@ def run(impl):
 
 	impl.save_file('emptied', '')
 	impl.remove_file('deleted')
+
+	return []

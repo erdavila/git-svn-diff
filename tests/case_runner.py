@@ -6,6 +6,6 @@ def run(impl):
 	pathname = sys.argv[1]
 
 	case = imp.load_source('case', pathname)
-	case.run(impl)
-
-	print("\nRepository is available at", impl.temp_path)
+	revs = case.run(impl)
+	diff_file = impl.diff(*revs)
+	print('Diff saved to', diff_file)
