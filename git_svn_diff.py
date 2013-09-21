@@ -4,10 +4,10 @@ import re
 import subprocess
 
 
-rev = 2   # TODO: get real value from somewhere
-
-
 class DiffTransformer(object):
+
+	def __init__(self, revision):
+		self.revision = revision
 
 	def transform_line(self, line):
 		if line.startswith('diff --git '):
@@ -18,10 +18,10 @@ class DiffTransformer(object):
 			return 67*'='
 		elif line.startswith('--- '):
 			if line == '--- /dev/null':
-				r = 0
+				rev = 0
 			else:
-				r = rev
-			return '--- %s\t(revision %d)' % (self.filename, r)
+				rev = self.revision
+			return '--- %s\t(revision %d)' % (self.filename, rev)
 		elif line.startswith('+++ '):
 			return '+++ %s\t(working copy)' % self.filename
 		elif line.startswith('new file mode ') or line.startswith('deleted file mode '):
@@ -31,13 +31,21 @@ class DiffTransformer(object):
 
 
 def main():
+	revision = get_head_revision()
 	output = subprocess.check_output(['git', 'diff', '--no-prefix', 'HEAD'])
 	lines = output.split('\n')
-	transformer = DiffTransformer()
+	transformer = DiffTransformer(revision)
 	for line in lines:
 		line = transformer.transform_line(line)
 		if line:
 			print(line)
+
+
+def get_head_revision():
+	output = subprocess.check_output(['git', 'svn', 'info'])
+	m = re.search(r'\nRevision: (\d+)\n', output)
+	revision = int(m.group(1))
+	return revision
 
 
 if __name__ == '__main__':
