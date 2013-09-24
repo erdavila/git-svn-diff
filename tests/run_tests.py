@@ -1,17 +1,9 @@
 #!/usr/bin/env python
+import imp
 import os.path
 import subprocess
 import unittest
 from impl.git import GitImpl
-import cases.multiple_changes
-import cases.file_added
-import cases.file_emptied_or_removed
-import cases.one_revision_parameter_r1
-import cases.one_revision_parameter_r2
-import cases.one_revision_parameter_r3
-import cases.two_revision_parameters_r1_r2
-import cases.two_revision_parameters_r1_r3
-import cases.two_revision_parameters_r2_r3
 
 MY_DIRECTORY, _ = os.path.split(__file__)
 COMMAND_PATH = os.path.abspath(os.path.join(MY_DIRECTORY, '..', 'git_svn_diff.py'))
@@ -33,8 +25,11 @@ class Test(unittest.TestCase):
 	def tearDown(self):
 		pass
 
-	def assertDiffTransformation(self, case_module, expected_output_file):
-		expected_output_file = os.path.join(MY_DIRECTORY, 'expected', expected_output_file + '.diff')
+	def assertDiffTransformation(self, case):
+		case_module_path = os.path.join(MY_DIRECTORY, 'cases', case + '.py')
+		case_module = imp.load_source('case', case_module_path)
+
+		expected_output_file = os.path.join(MY_DIRECTORY, 'expected', case + '.diff')
 		expected_output = load_file(expected_output_file)
 
 		git_impl = GitImpl()
@@ -53,40 +48,31 @@ class Test(unittest.TestCase):
 		self.assertEqual(expected_output, output)
 
 	def testMultipleChanges(self):
-		expected_output_file = 'multiple_changes'
-		self.assertDiffTransformation(cases.multiple_changes, expected_output_file)
+		self.assertDiffTransformation('multiple_changes')
 
 	def testFileAdded(self):
-		expected_output_file = 'file_added'
-		self.assertDiffTransformation(cases.file_added, expected_output_file)
+		self.assertDiffTransformation('file_added')
 
 	def testFileEmptiedOrRemoved(self):
-		expected_output_file = 'file_emptied_or_removed'
-		self.assertDiffTransformation(cases.file_emptied_or_removed, expected_output_file)
+		self.assertDiffTransformation('file_emptied_or_removed')
 
 	def testOneRevisionParameterR1(self):
-		expected_output_file = 'one_revision_parameter_r1'
-		self.assertDiffTransformation(cases.one_revision_parameter_r1, expected_output_file)
+		self.assertDiffTransformation('one_revision_parameter_r1')
 
 	def testOneRevisionParameterR2(self):
-		expected_output_file = 'one_revision_parameter_r2'
-		self.assertDiffTransformation(cases.one_revision_parameter_r2, expected_output_file)
+		self.assertDiffTransformation('one_revision_parameter_r2')
 
 	def testOneRevisionParameterR3(self):
-		expected_output_file = 'one_revision_parameter_r3'
-		self.assertDiffTransformation(cases.one_revision_parameter_r3, expected_output_file)
+		self.assertDiffTransformation('one_revision_parameter_r3')
 
 	def testTwoRevisionParametersR1R2(self):
-		expected_output_file = 'two_revision_parameters_r1_r2'
-		self.assertDiffTransformation(cases.two_revision_parameters_r1_r2, expected_output_file)
+		self.assertDiffTransformation('two_revision_parameters_r1_r2')
 
 	def testTwoRevisionParametersR1R3(self):
-		expected_output_file = 'two_revision_parameters_r1_r3'
-		self.assertDiffTransformation(cases.two_revision_parameters_r1_r3, expected_output_file)
+		self.assertDiffTransformation('two_revision_parameters_r1_r3')
 
 	def testTwoRevisionParametersR2R3(self):
-		expected_output_file = 'two_revision_parameters_r2_r3'
-		self.assertDiffTransformation(cases.two_revision_parameters_r2_r3, expected_output_file)
+		self.assertDiffTransformation('two_revision_parameters_r2_r3')
 
 
 if __name__ == "__main__":
