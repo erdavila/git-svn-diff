@@ -163,6 +163,53 @@ class ArgumentsParser(object):
 		raise Expection("Expected argument")
 
 
+class VersionsSolver(object):
+	
+	def __init__(self, cwd=None):
+		self.cwd = cwd
+	
+	def solve_version1(self, version1):
+		assert (version1.commit is None) or (version1.revision is None)
+		assert (version1.revision is None) or (version1.assumed_revision is None)
+		
+		if not self._solve_common(version1):
+			version1.commit = 'HEAD'
+			if version1.assumed_revision is None:
+				version1.assumed_revision = commit_to_revision(version1.commit, cwd=self.cwd)
+		
+		assert version1.commit is not None
+		assert version1.assumed_revision is not None
+	
+	def solve_version2(self, version2):
+		assert (version2.commit is None) or (version2.revision is None)
+		assert (version2.revision is None) or (version2.assumed_revision is None)
+		
+		self._solve_common(version2)
+		
+		assert (version2.commit is None) == (version2.assumed_revision is None)
+		
+	def _solve_common(self, version):
+		assert (version.commit is None) or (version.revision is None)
+		assert (version.revision is None) or (version.assumed_revision is None)
+		
+		solved = False
+		if version.commit is not None:
+			if version.assumed_revision is None:
+				version.assumed_revision = commit_to_revision(version.commit, cwd=self.cwd)
+				if version.assumed_revision is None:
+					raise NotImplementedError()
+			solved = True
+		elif version.revision is not None:
+			version.commit = revision_to_commit(version.revision, cwd=self.cwd)
+			if version.commit:
+				version.assumed_revision = version.revision
+			else:
+				raise NotImplementedError()
+			solved = True
+		
+		return solved
+
+
 def process_arguments(): # TODO: remove
 	revision1 = None
 	revision2 = None
@@ -190,18 +237,18 @@ def process_arguments(): # TODO: remove
 	return revision1, revision2, verbose
 
 
-def revision_to_commit(revision):
-	commit = find_rev('r%d' % revision, 'Revision')
+def revision_to_commit(revision, cwd=None): # TODO: move to VersionSolver
+	commit = find_rev('r%d' % revision, 'Revision', cwd)
 	return commit
 
 
-def commit_to_revision(commit):
-	revision = find_rev(commit, 'Commit')
+def commit_to_revision(commit, cwd=None): # TODO: move to VersionSolver
+	revision = find_rev(commit, 'Commit', cwd)
 	return int(revision)
 
 
-def find_rev(param, what):
-	found = subprocess.check_output(['git', 'svn', 'find-rev', param])
+def find_rev(param, what, cwd): # TODO: move to VersionSolver
+	found = subprocess.check_output(['git', 'svn', 'find-rev', param], cwd=cwd)
 	found = found.strip()
 	if found == '':
 		raise Exception(what + ' not found: %r' % param)

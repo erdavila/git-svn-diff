@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import imp
 import os.path
+import re
 import subprocess
 import unittest
 from impl.git import GitImpl
@@ -230,6 +231,95 @@ class ArgumentsParserTest(unittest.TestCase):
 	def assertVersion(self, version, commit, rev, arev):
 		self.assertEqual(commit, version.commit)
 		self.assertEqual(rev, version.revision)
+		self.assertEqual(arev, version.assumed_revision)
+
+
+class VersionsSolverTest(unittest.TestCase):
+	
+	def setUp(self):
+		self.version1 = git_svn_diff.Version()
+		self.version2 = git_svn_diff.Version()
+		self.git_impl = GitImpl()
+		self.solver = git_svn_diff.VersionsSolver(cwd=self.git_impl.client_path)
+	
+	def testVersion1Default(self):
+		self.solver.solve_version1(self.version1)
+		
+		self.assertSolvedVersion(self.version1, commit='HEAD', arev=1)
+	
+	def testVersion1AsCommit(self):
+		EXPECTED_COMMIT = self.getCurrentCommit()
+		EXPECTED_REVISION = self.getCurrentRevision()
+		self.version1.commit = EXPECTED_COMMIT
+		
+		self.solver.solve_version1(self.version1)
+		
+		self.assertSolvedVersion(self.version1, commit=EXPECTED_COMMIT, arev=EXPECTED_REVISION)
+
+	def testVersion1AsCommitWithAssumedRevision(self):
+		EXPECTED_COMMIT = 'deadbeef'
+		EXPECTED_REVISION = 321
+		self.version1.commit = EXPECTED_COMMIT
+		self.version1.assumed_revision = EXPECTED_REVISION
+		
+		self.solver.solve_version1(self.version1)
+		
+		self.assertSolvedVersion(self.version1, commit=EXPECTED_COMMIT, arev=EXPECTED_REVISION)
+
+	def testVersion1AsRevision(self):
+		EXPECTED_COMMIT = self.getCurrentCommit()
+		EXPECTED_REVISION = self.getCurrentRevision()
+		self.version1.revision = EXPECTED_REVISION
+		
+		self.solver.solve_version1(self.version1)
+		
+		self.assertSolvedVersion(self.version1, commit=EXPECTED_COMMIT, arev=EXPECTED_REVISION)
+	
+	def testVersion2Default(self):
+		self.solver.solve_version2(self.version2)
+		
+		self.assertSolvedVersion(self.version2, commit=None,   arev=None)
+	
+	def testVersion2AsCommit(self):
+		EXPECTED_COMMIT = self.getCurrentCommit()
+		self.version2.commit = EXPECTED_COMMIT
+		
+		self.solver.solve_version2(self.version2)
+		
+		self.assertSolvedVersion(self.version2, commit=EXPECTED_COMMIT, arev=1)
+	
+	def testVersion2AsCommitWithAssumedRevision(self):
+		EXPECTED_COMMIT = self.getCurrentCommit()
+		EXPECTED_REVISION = 456
+		self.version2.commit = EXPECTED_COMMIT
+		self.version2.assumed_revision = EXPECTED_REVISION
+		
+		self.solver.solve_version2(self.version2)
+		
+		self.assertSolvedVersion(self.version2, commit=EXPECTED_COMMIT, arev=EXPECTED_REVISION)
+
+	def testVersion2AsRevision(self):
+		EXPECTED_COMMIT = self.getCurrentCommit()
+		EXPECTED_REVISION = self.getCurrentRevision()
+		self.version2.revision = EXPECTED_REVISION
+		
+		self.solver.solve_version2(self.version2)
+		
+		self.assertSolvedVersion(self.version2, commit=EXPECTED_COMMIT, arev=EXPECTED_REVISION)
+	
+	def getCurrentCommit(self):
+		commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.git_impl.client_path)
+		commit = commit.strip()
+		return commit
+	
+	def getCurrentRevision(self):
+		output = subprocess.check_output(['git', 'svn', 'info'], cwd=self.git_impl.client_path)
+		m = re.search(r'\nRevision: (\d+)\n', output)
+		revision = int(m.group(1))
+		return revision
+
+	def assertSolvedVersion(self, version, commit, arev):
+		self.assertEqual(commit, version.commit)
 		self.assertEqual(arev, version.assumed_revision)
 
 
