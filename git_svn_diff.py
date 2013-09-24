@@ -60,7 +60,110 @@ def main():
 			print(line)
 
 
-def process_arguments():
+class Version(object):
+	def __init__(self, commit=None, revision=None, assumed_revision=None):
+		self.commit = commit
+		self.revision = revision
+		self.assumed_revision = assumed_revision
+
+
+class ArgumentsParser(object):
+	
+	def __init__(self):
+		self._versions = None
+		self._arguments = None
+	
+	def parse(self, arguments):
+		self._versions = Version(), Version()
+		self._arguments = list(arguments)
+		
+		verbose = False
+	
+		while self._arguments:
+			arg = self._arguments.pop(0)
+			if arg == '-r':
+				arg = self._next_argument()
+				if re.match(r'\d+:\d+$', arg):
+					if self._is_defined(self._versions[0]):
+						raise Exception("Too many _arguments")
+					revision0, revision1 = arg.split(':')
+					self._versions[0].revision = int(revision0)
+					self._versions[1].revision = int(revision1)
+				else:
+					revision = int(arg)
+					self._set_revision(revision)
+			elif re.match(r'r\d+$', arg):
+				revision = int(arg[1:])
+				self._set_revision(revision)
+			elif re.match(r'[0-9a-f]{4,40}$', arg, re.IGNORECASE):
+				self._set_commit(arg)
+			elif arg == '--assume-rev1':
+				assumed_revision = int(self._next_argument())
+				self._set_assumed_revision(0, assumed_revision)
+			elif arg == '--assume-rev2':
+				assumed_revision = int(self._next_argument())
+				self._set_assumed_revision(1, assumed_revision)
+			elif arg == '--r1':
+				assumed_revision = int(self._next_argument())
+				self._set_assumed_revision(0, assumed_revision)
+			elif arg == '--r2':
+				assumed_revision = int(self._next_argument())
+				self._set_assumed_revision(1, assumed_revision)
+			elif re.match(r'--assume-rev1=\d+$', arg):
+				assumed_revision = int(arg[14:])
+				self._set_assumed_revision(0, assumed_revision)
+			elif re.match(r'--assume-rev2=\d+$', arg):
+				assumed_revision = int(arg[14:])
+				self._set_assumed_revision(1, assumed_revision)
+			elif re.match(r'--r1=\d+$', arg):
+				assumed_revision = int(arg[5:])
+				self._set_assumed_revision(0, assumed_revision)
+			elif re.match(r'--r2=\d+$', arg):
+				assumed_revision = int(arg[5:])
+				self._set_assumed_revision(1, assumed_revision)
+			elif arg == '-v':
+				verbose = True
+			else:
+				raise Exception("Unknown argument: %r" % arg)
+	
+		for version in self._versions:
+			if version.revision is not None and version.assumed_revision is not None:
+				raise Exception("An assumed revision (%d) cannot be used with a revision (%d)" % (version.assumed_revision, version.revision))
+	
+		assert (self._versions[0].commit is None) or (self._versions[0].revision is None)
+		assert (self._versions[1].commit is None) or (self._versions[1].revision is None)
+		return self._versions[0], self._versions[1], verbose
+	
+	@staticmethod
+	def _is_defined(version):
+		return version.commit is not None or version.revision is not None
+
+	def _set_commit(self, commit):
+		for version in self._versions:
+			if not self._is_defined(version):
+				version.commit = commit
+				return
+		raise Exception("Too many _arguments")
+
+	def _set_revision(self, revision):
+		for version in self._versions:
+			if not self._is_defined(version):
+				version.revision = revision
+				return
+		raise Exception("Too many _arguments")
+
+	def _set_assumed_revision(self, index, assumed_revision):
+		if self._versions[index].assumed_revision is not None:
+			raise Exception("Assumed revision already specified for the parameter")
+		self._versions[index].assumed_revision = assumed_revision
+
+	def _next_argument(self):
+		if self._arguments:
+			return self._arguments.pop(0)
+		raise Expection("Expected argument")
+
+
+def process_arguments(): # TODO: remove
 	revision1 = None
 	revision2 = None
 	verbose = False
