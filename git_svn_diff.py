@@ -36,24 +36,26 @@ class DiffTransformer(object):
 
 
 def main():
-	revision1, revision2, verbose = process_arguments()
-	if revision1 is None:
-		assert revision2 is None, revision2
-		commits = ['HEAD']
-		revision1 =  commit_to_revision('HEAD')
-	else:
-		commits = [revision_to_commit(revision1)]
-		if revision2 is not None:
-			commits.append(revision_to_commit(revision2))
-
+	import sys
+	
+	args_parser = ArgumentsParser()
+	version1, version2, verbose = args_parser.parse(sys.argv[1:])
+	
+	versions_solver = VersionsSolver()
+	versions_solver.solve_version1(version1)
+	versions_solver.solve_version2(version2)
+	
+	commits = [version1.commit]
+	if version2.commit is not None:
+		commits.append(version2.commit)
+	
 	cmd = ['git', 'diff', '--no-prefix'] + commits
 	if verbose:
-		import sys
 		print('Executing %r' % cmd, file=sys.stderr)
 	output = subprocess.check_output(cmd)
 
 	lines = output.splitlines()
-	transformer = DiffTransformer(revision1, revision2)
+	transformer = DiffTransformer(version1.assumed_revision, version2.assumed_revision)
 	for line in lines:
 		line = transformer.transform_line(line)
 		if line is not None:
@@ -166,7 +168,7 @@ class ArgumentsParser(object):
 class VersionsSolver(object):
 	
 	def __init__(self, cwd=None):
-		self.cwd = cwd
+		self._cwd = cwd
 	
 	def solve_version1(self, version1):
 		assert (version1.commit is None) or (version1.revision is None)
@@ -175,7 +177,7 @@ class VersionsSolver(object):
 		if not self._solve_common(version1):
 			version1.commit = 'HEAD'
 			if version1.assumed_revision is None:
-				version1.assumed_revision = commit_to_revision(version1.commit, cwd=self.cwd)
+				version1.assumed_revision = self._commit_to_revision(version1.commit)
 		
 		assert version1.commit is not None
 		assert version1.assumed_revision is not None
@@ -195,12 +197,12 @@ class VersionsSolver(object):
 		solved = False
 		if version.commit is not None:
 			if version.assumed_revision is None:
-				version.assumed_revision = commit_to_revision(version.commit, cwd=self.cwd)
+				version.assumed_revision = self._commit_to_revision(version.commit)
 				if version.assumed_revision is None:
 					raise NotImplementedError()
 			solved = True
 		elif version.revision is not None:
-			version.commit = revision_to_commit(version.revision, cwd=self.cwd)
+			version.commit = self._revision_to_commit(version.revision)
 			if version.commit:
 				version.assumed_revision = version.revision
 			else:
@@ -208,51 +210,21 @@ class VersionsSolver(object):
 			solved = True
 		
 		return solved
-
-
-def process_arguments(): # TODO: remove
-	revision1 = None
-	revision2 = None
-	verbose = False
-
-	import sys
-	args = sys.argv[1:]
-	while args:
-		arg = args.pop(0)
-		if arg == '-r':
-			if not args:
-				raise Exception('Missing revision argument')
-			arg = args.pop(0)
-			if re.match(r'\d+$', arg):
-				revision1 = int(arg)
-			elif re.match(r'\d+:\d+$', arg):
-				revision1, revision2 =  (int(rev) for rev in arg.split(':'))
-			else:
-				raise Exception('Invalid revision: %r' % arg)
-		elif arg == '-v':
-			verbose = True
-		else:
-			raise Exception('Unknown argument: %r' % arg)
-
-	return revision1, revision2, verbose
-
-
-def revision_to_commit(revision, cwd=None): # TODO: move to VersionSolver
-	commit = find_rev('r%d' % revision, 'Revision', cwd)
-	return commit
-
-
-def commit_to_revision(commit, cwd=None): # TODO: move to VersionSolver
-	revision = find_rev(commit, 'Commit', cwd)
-	return int(revision)
-
-
-def find_rev(param, what, cwd): # TODO: move to VersionSolver
-	found = subprocess.check_output(['git', 'svn', 'find-rev', param], cwd=cwd)
-	found = found.strip()
-	if found == '':
-		raise Exception(what + ' not found: %r' % param)
-	return found
+	
+	def _revision_to_commit(self, revision):
+		commit = self._find_rev('r%d' % revision, 'Revision')
+		return commit
+	
+	def _commit_to_revision(self, commit):
+		revision = self._find_rev(commit, 'Commit')
+		return int(revision)
+	
+	def _find_rev(self, param, what):
+		found = subprocess.check_output(['git', 'svn', 'find-rev', param], cwd=self._cwd)
+		found = found.strip()
+		if found == '':
+			raise Exception(what + ' not found: %r' % param)
+		return found
 
 
 if __name__ == '__main__':
