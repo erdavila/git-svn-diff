@@ -21,7 +21,7 @@ def save_file(filename, content):
 
 class DiffTransformationTest(unittest.TestCase):
 
-	def assertDiffTransformation(self, case):
+	def assertDiffTransformation(self, case, arguments=None):
 		case_module_path = os.path.join(MY_DIRECTORY, 'cases', case + '.py')
 		case_module = imp.load_source('case', case_module_path)
 
@@ -30,12 +30,13 @@ class DiffTransformationTest(unittest.TestCase):
 
 		git_impl = GitImpl()
 		revs = case_module.run(git_impl)
-		if revs:
-			revision_args = ['-r', ':'.join(str(rev) for rev in revs)]
-		else:
-			revision_args = []
+		if arguments is None:
+			if revs:
+				arguments = ['-r', ':'.join(str(rev) for rev in revs)]
+			else:
+				arguments = []
 
-		cmd = [COMMAND_PATH, '-v'] + revision_args
+		cmd = [COMMAND_PATH, '-v'] + arguments
 		output = subprocess.check_output(cmd, cwd=git_impl.client_path)
 
 		save_file(os.path.join(git_impl.temp_path, 'git-svn.diff'), output)
@@ -69,6 +70,9 @@ class DiffTransformationTest(unittest.TestCase):
 
 	def testTwoRevisionParametersR2R3(self):
 		self.assertDiffTransformation('two_revision_parameters_r2_r3')
+	
+	def testNonSHA1CommitParameter(self):
+		self.assertDiffTransformation('one_revision_parameter_r1', arguments=['HEAD~2'])
 
 
 class ArgumentsParserTest(unittest.TestCase):

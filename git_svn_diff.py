@@ -97,8 +97,6 @@ class ArgumentsParser(object):
 			elif re.match(r'r\d+$', arg):
 				revision = int(arg[1:])
 				self._set_revision(revision)
-			elif re.match(r'[0-9a-f]{4,40}$', arg, re.IGNORECASE):
-				self._set_commit(arg)
 			elif arg == '--assume-rev1':
 				assumed_revision = int(self._next_argument())
 				self._set_assumed_revision(0, assumed_revision)
@@ -125,8 +123,10 @@ class ArgumentsParser(object):
 				self._set_assumed_revision(1, assumed_revision)
 			elif arg == '-v':
 				verbose = True
-			else:
+			elif arg.startswith('-'):
 				raise Exception("Unknown argument: %r" % arg)
+			else:
+				self._set_commit(arg)
 	
 		for version in self._versions:
 			if version.revision is not None and version.assumed_revision is not None:
