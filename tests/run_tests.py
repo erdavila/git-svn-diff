@@ -21,22 +21,32 @@ def save_file(filename, content):
 
 class DiffTransformationTest(unittest.TestCase):
 
-	def assertDiffTransformation(self, case, arguments=None):
+	def assertDiffTransformation(self, case, convert_revision_to_commit=False, arguments=None, expected=None):
 		case_module_path = os.path.join(MY_DIRECTORY, 'cases', case + '.py')
 		case_module = imp.load_source('case', case_module_path)
 
-		expected_output_file = os.path.join(MY_DIRECTORY, 'expected', case + '.diff')
+		if expected is None:
+			expected = case
+		expected_output_file = os.path.join(MY_DIRECTORY, 'expected', expected + '.diff')
 		expected_output = load_file(expected_output_file)
 
 		git_impl = GitImpl()
-		revs = case_module.run(git_impl)
+		revisions = case_module.run(git_impl)
 		if arguments is None:
-			if revs:
-				arguments = ['-r', ':'.join(str(rev) for rev in revs)]
+			if revisions:
+				if convert_revision_to_commit:
+					arguments = []
+					for rev in revisions:
+						commit = subprocess.check_output(['git', 'svn', 'find-rev', 'r%d' % rev], cwd=git_impl.client_path)
+						commit = commit.strip()
+						arguments.append(commit)
+				else:
+					arguments = ['-r', ':'.join(str(rev) for rev in revisions)]
 			else:
 				arguments = []
 
 		cmd = [COMMAND_PATH, '-v'] + arguments
+		print "Executing %r" % cmd
 		output = subprocess.check_output(cmd, cwd=git_impl.client_path)
 
 		save_file(os.path.join(git_impl.temp_path, 'git-svn.diff'), output)
@@ -73,6 +83,37 @@ class DiffTransformationTest(unittest.TestCase):
 	
 	def testNonSHA1CommitParameter(self):
 		self.assertDiffTransformation('one_revision_parameter_r1', arguments=['HEAD~2'])
+	
+	def testOneCommitParameterR1(self):
+		self.assertDiffTransformation('one_revision_parameter_r1', convert_revision_to_commit=True)
+	
+	def testOneCommitParameterR2(self):
+		self.assertDiffTransformation('one_revision_parameter_r2', convert_revision_to_commit=True)
+	
+	def testOneCommitParameterR3(self):
+		self.assertDiffTransformation('one_revision_parameter_r3', convert_revision_to_commit=True)
+	
+	def testTwoCommitParametersR1R2(self):
+		self.assertDiffTransformation('two_revision_parameters_r1_r2', convert_revision_to_commit=True)
+	
+	def testTwoCommitParametersR1R3(self):
+		self.assertDiffTransformation('two_revision_parameters_r1_r3', convert_revision_to_commit=True)
+	
+	def testTwoCommitParametersR2R3(self):
+		self.assertDiffTransformation('two_revision_parameters_r2_r3', convert_revision_to_commit=True)
+	
+	def testCommitAndRevisionParametersR1R3(self):
+		self.assertDiffTransformation('two_revision_parameters_r1_r3', arguments=['HEAD~2', 'HEAD'])
+	
+	def testCommitsWithAssumedRevisions(self):
+		arguments = [
+			'HEAD~1', '--r1=666',
+			'HEAD', '--assume-rev2', '1024',
+		]
+		self.assertDiffTransformation('two_revision_parameters_r2_r3',
+				arguments=arguments,
+				expected='commits_with_assumed_revisions'
+		)
 
 
 class ArgumentsParserTest(unittest.TestCase):
