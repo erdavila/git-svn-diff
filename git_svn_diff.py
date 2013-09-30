@@ -9,6 +9,13 @@ class DiffTransformer(object):
 	def __init__(self, revision1, revision2):
 		self.revision1 = revision1
 		self.revision2 = revision2
+	
+	def transform_lines(self, lines):
+		for line in lines:
+			line = line.rstrip('\r\n')
+			line = self.transform_line(line)
+			if line is not None:
+				yield line
 
 	def transform_line(self, line):
 		if line.startswith('diff --git '):
@@ -52,14 +59,14 @@ def main():
 	cmd = ['git', 'diff', '--no-prefix'] + commits
 	if verbose:
 		print('Executing %r' % cmd, file=sys.stderr)
-	output = subprocess.check_output(cmd)
-
-	lines = output.splitlines()
+	process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+	process.poll()
+	if process.returncode not in (None, 0):
+		raise NotImplementedError()
+	
 	transformer = DiffTransformer(version1.assumed_revision, version2.assumed_revision)
-	for line in lines:
-		line = transformer.transform_line(line)
-		if line is not None:
-			print(line)
+	for line in transformer.transform_lines(process.stdout):
+		print(line)
 
 
 class Version(object):
