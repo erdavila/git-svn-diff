@@ -2,6 +2,7 @@
 from __future__ import print_function
 import re
 import subprocess
+import sys
 
 
 class DiffTransformer(object):
@@ -20,7 +21,11 @@ class DiffTransformer(object):
 	def transform_line(self, line):
 		if line.startswith('diff --git '):
 			m = re.search(r'^diff --git (.+) \1$', line)
-			self.filename = m.group(1)
+			if m:
+				self.filename = m.group(1)
+			else:
+				m = re.search(r'^diff --git a/(.+) b/\1$', line)
+				self.filename = m.group(1)
 			return 'Index: ' + self.filename
 		elif line.startswith('index '):
 			return 67 * '='
@@ -43,29 +48,33 @@ class DiffTransformer(object):
 
 
 def main():
-	import sys
-	
 	args_parser = ArgumentsParser()
 	version1, version2, verbose = args_parser.parse(sys.argv[1:])
 	
-	versions_solver = VersionsSolver()
-	versions_solver.solve_version1(version1)
-	versions_solver.solve_version2(version2)
+	convert_from_pipe = convert_from_pipe_arguments(version1, version2)
 	
-	commits = [version1.commit]
-	if version2.commit is not None:
-		commits.append(version2.commit)
-	
-	cmd = ['git', 'diff', '--no-prefix'] + commits
-	if verbose:
-		print('Executing %r' % cmd, file=sys.stderr)
-	process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-	process.poll()
-	if process.returncode not in (None, 0):
-		raise NotImplementedError()
-	
+	if convert_from_pipe:
+		lines = sys.stdin
+	else:
+		versions_solver = VersionsSolver()
+		versions_solver.solve_version1(version1)
+		versions_solver.solve_version2(version2)
+		
+		commits = [version1.commit]
+		if version2.commit is not None:
+			commits.append(version2.commit)
+		
+		cmd = ['git', 'diff', '--no-prefix'] + commits
+		if verbose:
+			print('Executing %r' % cmd, file=sys.stderr)
+		process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+		process.poll()
+		if process.returncode not in (None, 0):
+			raise NotImplementedError()
+		lines = process.stdout
+		
 	transformer = DiffTransformer(version1.assumed_revision, version2.assumed_revision)
-	for line in transformer.transform_lines(process.stdout):
+	for line in transformer.transform_lines(lines):
 		print(line)
 
 
@@ -170,6 +179,15 @@ class ArgumentsParser(object):
 		if self._arguments:
 			return self._arguments.pop(0)
 		raise Expection("Expected argument")
+
+
+def convert_from_pipe_arguments(version1, version2):
+	return version1.commit is None \
+	   and version1.revision is None \
+	   and version1.assumed_revision is not None \
+	   and version2.commit is None \
+	   and version2.revision is None \
+	   and not sys.stdin.isatty()
 
 
 class VersionsSolver(object):

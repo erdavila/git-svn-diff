@@ -116,6 +116,54 @@ class DiffTransformationTest(unittest.TestCase):
 		)
 
 
+class PipeDiffTransformationTest(unittest.TestCase):
+	
+	def assertDiffTransformation(self, case):
+		case_module_path = os.path.join(MY_DIRECTORY, 'cases', case + '.py')
+		case_module = imp.load_source('case', case_module_path)
+
+		expected = case
+		expected_output_file = os.path.join(MY_DIRECTORY, 'expected', expected + '.diff')
+		expected_output = load_file(expected_output_file)
+
+		git_impl = GitImpl()
+		revisions = case_module.run(git_impl)
+		commits = []
+		assumed_revisions = []
+		if revisions:
+			for rev in revisions:
+				commit = subprocess.check_output(['git', 'svn', 'find-rev', 'r%d' % rev], cwd=git_impl.client_path)
+				commit = commit.strip()
+				
+				commits.append(commit)
+				assumed_revisions.append(rev)
+		else:
+			commit = 'HEAD'
+			revision = subprocess.check_output(['git', 'svn', 'find-rev', commit], cwd=git_impl.client_path)
+			commits.append(commit)
+			assumed_revisions.append(int(revision))
+		
+		git_diff_cmd = 'git diff %s' % ' '.join(commits)
+		git_svn_diff_cmd = '%s -v %s' % (COMMAND_PATH, ' '.join('--r%d=%d' % (n, rev) for n, rev in enumerate(assumed_revisions, 1)))
+		cmd = git_diff_cmd + ' | ' + git_svn_diff_cmd
+		print "Executing %r" % cmd
+		output = subprocess.check_output(cmd, shell=True, cwd=git_impl.client_path)
+
+		save_file(os.path.join(git_impl.temp_path, 'git-svn.diff'), output)
+		save_file(os.path.join(git_impl.temp_path, 'svn.diff'), expected_output)
+
+		self.assertEqual(expected_output, output)
+
+	def testMultipleChanges(self):
+		self.assertDiffTransformation('multiple_changes')
+	
+	def testOneRevisionParameterR1(self):
+		self.assertDiffTransformation('one_revision_parameter_r1')
+	
+	def testTwoRevisionParametersR1R3(self):
+		self.assertDiffTransformation('two_revision_parameters_r1_r3')
+
+
 class ArgumentsParserTest(unittest.TestCase):
 	
 	def setUp(self):
