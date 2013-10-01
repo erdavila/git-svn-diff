@@ -19,25 +19,46 @@ def save_file(filename, content):
 		f.write(content)
 
 
-class DiffTransformationTest(unittest.TestCase):
-
-	def assertDiffTransformation(self, case, convert_revision_to_commit=False, arguments=None, expected=None):
+class BaseDiffTransformationTest(unittest.TestCase):
+	
+	def assertDiffTransformation(self, case, expected):
 		case_module_path = os.path.join(MY_DIRECTORY, 'cases', case + '.py')
 		case_module = imp.load_source('case', case_module_path)
 
-		if expected is None:
-			expected = case
 		expected_output_file = os.path.join(MY_DIRECTORY, 'expected', expected + '.diff')
 		expected_output = load_file(expected_output_file)
 
 		git_impl = GitImpl()
 		revisions = case_module.run(git_impl)
+		
+		cmd, shell = self._make_command(revisions, cwd=git_impl.client_path)
+		print "Executing %r" % cmd
+		output = subprocess.check_output(cmd, shell=shell, cwd=git_impl.client_path)
+
+		save_file(os.path.join(git_impl.temp_path, 'git-svn.diff'), output)
+		save_file(os.path.join(git_impl.temp_path, 'svn.diff'), expected_output)
+
+		self.assertEqual(expected_output, output)
+
+
+class DiffTransformationTest(BaseDiffTransformationTest):
+
+	def assertDiffTransformation(self, case, convert_revision_to_commit=False, arguments=None, expected=None):
+		self.convert_revision_to_commit = convert_revision_to_commit
+		self.arguments = arguments
+		if expected is None:
+			expected = case
+		
+		super(DiffTransformationTest, self).assertDiffTransformation(case, expected)
+	
+	def _make_command(self, revisions, cwd):
+		arguments = self.arguments
 		if arguments is None:
 			if revisions:
-				if convert_revision_to_commit:
+				if self.convert_revision_to_commit:
 					arguments = []
 					for rev in revisions:
-						commit = subprocess.check_output(['git', 'svn', 'find-rev', 'r%d' % rev], cwd=git_impl.client_path)
+						commit = subprocess.check_output(['git', 'svn', 'find-rev', 'r%d' % rev], cwd=cwd)
 						commit = commit.strip()
 						arguments.append(commit)
 				else:
@@ -46,13 +67,7 @@ class DiffTransformationTest(unittest.TestCase):
 				arguments = []
 
 		cmd = [COMMAND_PATH, '-v'] + arguments
-		print "Executing %r" % cmd
-		output = subprocess.check_output(cmd, cwd=git_impl.client_path)
-
-		save_file(os.path.join(git_impl.temp_path, 'git-svn.diff'), output)
-		save_file(os.path.join(git_impl.temp_path, 'svn.diff'), expected_output)
-
-		self.assertEqual(expected_output, output)
+		return cmd, False
 
 	def testMultipleChanges(self):
 		self.assertDiffTransformation('multiple_changes')
@@ -116,43 +131,32 @@ class DiffTransformationTest(unittest.TestCase):
 		)
 
 
-class PipeDiffTransformationTest(unittest.TestCase):
+class PipeDiffTransformationTest(BaseDiffTransformationTest):
 	
 	def assertDiffTransformation(self, case):
-		case_module_path = os.path.join(MY_DIRECTORY, 'cases', case + '.py')
-		case_module = imp.load_source('case', case_module_path)
-
-		expected = case
-		expected_output_file = os.path.join(MY_DIRECTORY, 'expected', expected + '.diff')
-		expected_output = load_file(expected_output_file)
-
-		git_impl = GitImpl()
-		revisions = case_module.run(git_impl)
+		super(PipeDiffTransformationTest, self).assertDiffTransformation(case, case)
+	
+	@staticmethod
+	def _make_command(revisions, cwd):
 		commits = []
 		assumed_revisions = []
 		if revisions:
 			for rev in revisions:
-				commit = subprocess.check_output(['git', 'svn', 'find-rev', 'r%d' % rev], cwd=git_impl.client_path)
+				commit = subprocess.check_output(['git', 'svn', 'find-rev', 'r%d' % rev], cwd=cwd)
 				commit = commit.strip()
 				
 				commits.append(commit)
 				assumed_revisions.append(rev)
 		else:
 			commit = 'HEAD'
-			revision = subprocess.check_output(['git', 'svn', 'find-rev', commit], cwd=git_impl.client_path)
+			revision = subprocess.check_output(['git', 'svn', 'find-rev', commit], cwd=cwd)
 			commits.append(commit)
 			assumed_revisions.append(int(revision))
 		
 		git_diff_cmd = 'git diff %s' % ' '.join(commits)
 		git_svn_diff_cmd = '%s -v %s' % (COMMAND_PATH, ' '.join('--r%d=%d' % (n, rev) for n, rev in enumerate(assumed_revisions, 1)))
 		cmd = git_diff_cmd + ' | ' + git_svn_diff_cmd
-		print "Executing %r" % cmd
-		output = subprocess.check_output(cmd, shell=True, cwd=git_impl.client_path)
-
-		save_file(os.path.join(git_impl.temp_path, 'git-svn.diff'), output)
-		save_file(os.path.join(git_impl.temp_path, 'svn.diff'), expected_output)
-
-		self.assertEqual(expected_output, output)
+		return cmd, True
 
 	def testMultipleChanges(self):
 		self.assertDiffTransformation('multiple_changes')
