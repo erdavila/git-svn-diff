@@ -139,6 +139,9 @@ class ArgumentsParser(object):
 				self._set_assumed_revision(1, assumed_revision)
 			elif arg == '-v':
 				verbose = True
+			elif arg in ('-h', '--help'):
+				show_help()
+				sys.exit()
 			elif arg.startswith('-'):
 				raise Exception("Unknown argument: %r" % arg)
 			else:
@@ -250,6 +253,70 @@ class VersionsSolver(object):
 		if found == '':
 			raise Exception(what + ' not found: %r' % param)
 		return found
+
+
+def show_help():
+	text = \
+	"""Generate an SVN-formated diff.
+
+Commands:
+	git_svn_diff.py [-v] [<version> [<version>]]
+		Compare two versions.
+
+	git diff <options> | git_svn_diff.py [-v] --assume-rev1=REV1 [--assume-rev2=REV2]
+		Convert a Git diff to SVN diff.
+
+	A version may be either:
+		* An SVN revision REV specified in either form:
+			-r REV
+			rREV
+		  When comparing two SVN revisions REV1 and REV2, they can be specified with the argument:
+			-r REV1:REV2
+		  Must be in a git-svn repository to specify an SVN revision.
+		* A Git commit.
+		  An additional corresponding option can be used to specify the assumed SVN revision:
+			--assume-rev1=REV1 (for the first version to compare)
+			--assume-rev2=REV2 (for the second version to compare)
+		  If not specifying an assumed revision, then the repository must be a git-svn repository and the commit must have been fetched from or dcommitted to an SVN server.
+	
+	If the first version is not informed, the HEAD commit is considered.
+	If the second version is not informed, the working dir is considered.
+
+	In the second form, if --assume-rev2 (or --r2) is not specified, the working dir is considered as the second version.
+
+	The options --assume-rev1 and --assume-rev2 can be passed as --r1 and --r2.
+
+	-v  Displays verbose output.
+
+	-h or --help
+		Displays this help message.
+"""
+	rows, columns = (int(value) for value in subprocess.check_output(['stty', 'size']).strip().split())
+	
+	import textwrap
+	wrapper = textwrap.TextWrapper(width=columns-2)
+	
+	def remove_indent(line):
+		indent = 0
+		index = 0
+		for index, char in enumerate(line):
+			if char == ' ':
+				indent += 1
+			elif char == '\t':
+				indent += 4
+			else:
+				break
+		
+		return indent, line[index:]
+	
+	for line in text.splitlines():
+		indent, content = remove_indent(line)
+		wrapper.initial_indent = wrapper.subsequent_indent = indent * ' '
+		if content:
+			for content_line in wrapper.wrap(content):
+				print(content_line)
+		else:
+			print()
 
 
 if __name__ == '__main__':
