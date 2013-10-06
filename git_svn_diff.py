@@ -50,7 +50,7 @@ class DiffTransformer(object):
 
 def main():
 	args_parser = ArgumentsParser()
-	version1, version2, git_diff_options, verbose = args_parser.parse(sys.argv[1:])
+	version1, version2, git_diff_options, paths, verbose = args_parser.parse(sys.argv[1:])
 	
 	convert_from_pipe = convert_from_pipe_arguments(version1, version2)
 	
@@ -65,7 +65,7 @@ def main():
 		if version2.commit is not None:
 			commits.append(version2.commit)
 		
-		cmd = ['git', 'diff', '--no-prefix'] + git_diff_options + commits
+		cmd = ['git', 'diff', '--no-prefix'] + git_diff_options + commits + ['--'] + paths
 		if verbose:
 			print('Executing %r' % cmd, file=sys.stderr)
 		process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -86,7 +86,7 @@ class Version(object):
 		self.assumed_revision = assumed_revision
 
 
-ParsedArguments = namedtuple('ParsedArguments', 'version1,version2,git_diff_options,verbose')
+ParsedArguments = namedtuple('ParsedArguments', 'version1,version2,git_diff_options,paths,verbose')
 
 
 class ArgumentsParser(object):
@@ -100,6 +100,7 @@ class ArgumentsParser(object):
 		self._arguments = list(arguments)
 		
 		git_diff_options = []
+		paths = []
 		
 		verbose = False
 	
@@ -148,11 +149,14 @@ class ArgumentsParser(object):
 			elif arg in ('-h', '--help'):
 				show_help()
 				sys.exit()
+			elif arg == '--':
+				paths = self._arguments
+				break
 			elif arg.startswith('-'):
 				git_diff_options.append(arg)
 			else:
 				self._set_commit(arg)
-	
+		
 		for version in self._versions:
 			if version.revision is not None and version.assumed_revision is not None:
 				raise Exception("An assumed revision (%d) cannot be used with a revision (%d)" % (version.assumed_revision, version.revision))
@@ -164,6 +168,7 @@ class ArgumentsParser(object):
 				version1=self._versions[0],
 				version2=self._versions[1],
 				git_diff_options=git_diff_options,
+				paths=paths,
 				verbose=verbose
 		)
 	
@@ -272,7 +277,7 @@ def show_help():
 	"""Generate an SVN-formated diff.
 
 Commands:
-	git_svn_diff.py [-v] [<git-diff-options>] [<version> [<version>]]
+	git_svn_diff.py [-v] [<git-diff-options>] [<version> [<version>]] [-- <path>...]
 		Compare two versions.
 
 	git diff <options> | git_svn_diff.py [-v] --assume-rev1=REV1 [--assume-rev2=REV2]
