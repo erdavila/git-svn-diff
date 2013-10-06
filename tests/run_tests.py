@@ -129,6 +129,9 @@ class DiffTransformationTest(BaseDiffTransformationTest):
 				arguments=arguments,
 				expected='commits_with_assumed_revisions'
 		)
+	
+	def testParametersForGitDiff(self):
+		self.assertDiffTransformation('options_for_git_diff', arguments=['-w', '-b', 'HEAD'])
 
 
 class PipeDiffTransformationTest(BaseDiffTransformationTest):
@@ -174,111 +177,129 @@ class ArgumentsParserTest(unittest.TestCase):
 		self.parser = git_svn_diff.ArgumentsParser()
 
 	def testNoArgs(self):
-		version1, version2, verbose = self.parser.parse([])
+		version1, version2, git_diff_options, verbose = self.parser.parse([])
 		self.assertVersion(version1, commit=None, rev=None, arev=None)
 		self.assertVersion(version2, commit=None, rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testRevisionArg1(self):
-		version1, version2, verbose = self.parser.parse(['r123'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['r123'])
 		self.assertVersion(version1, commit=None, rev=123,  arev=None)
 		self.assertVersion(version2, commit=None, rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testRevisionArg2(self):
-		version1, version2, verbose = self.parser.parse(['-r', '123'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['-r', '123'])
 		self.assertVersion(version1, commit=None, rev=123,  arev=None)
 		self.assertVersion(version2, commit=None, rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testCommitArg(self):
-		version1, version2, verbose = self.parser.parse(['deadbeef'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['deadbeef'])
 		self.assertVersion(version1, commit='deadbeef', rev=None, arev=None)
 		self.assertVersion(version2, commit=None,       rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testCommitAndAssumedRevisionArg1(self):
-		version1, version2, verbose = self.parser.parse(['deadbeef', '--assume-rev1=123'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['deadbeef', '--assume-rev1=123'])
 		self.assertVersion(version1, commit='deadbeef', rev=None, arev=123)
 		self.assertVersion(version2, commit=None,       rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testCommitAndAssumedRevisionArg2(self):
-		version1, version2, verbose = self.parser.parse(['--assume-rev1=123', 'deadbeef'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['--assume-rev1=123', 'deadbeef'])
 		self.assertVersion(version1, commit='deadbeef', rev=None, arev=123)
 		self.assertVersion(version2, commit=None,       rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testOnlyAssumedRevision1(self):
-		version1, version2, verbose = self.parser.parse(['--assume-rev1=123'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['--assume-rev1=123'])
 		self.assertVersion(version1, commit=None, rev=None, arev=123)
 		self.assertVersion(version2, commit=None, rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testOnlyAssumedRevision2(self):
-		version1, version2, verbose = self.parser.parse(['--assume-rev1', '123'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['--assume-rev1', '123'])
 		self.assertVersion(version1, commit=None, rev=None, arev=123)
 		self.assertVersion(version2, commit=None, rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testOnlyAssumedRevision3(self):
-		version1, version2, verbose = self.parser.parse(['--r1=123'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['--r1=123'])
 		self.assertVersion(version1, commit=None, rev=None, arev=123)
 		self.assertVersion(version2, commit=None, rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testOnlyAssumedRevision4(self):
-		version1, version2, verbose = self.parser.parse(['--r1', '123'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['--r1', '123'])
 		self.assertVersion(version1, commit=None, rev=None, arev=123)
 		self.assertVersion(version2, commit=None, rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testTwoRevisions1(self):
-		version1, version2, verbose = self.parser.parse(['r12345', 'r6789'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['r12345', 'r6789'])
 		self.assertVersion(version1, commit=None, rev=12345, arev=None)
 		self.assertVersion(version2, commit=None, rev=6789,  arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testTwoRevisions2(self):
-		version1, version2, verbose = self.parser.parse(['-r', '12345', '-r', '6789'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['-r', '12345', '-r', '6789'])
 		self.assertVersion(version1, commit=None, rev=12345, arev=None)
 		self.assertVersion(version2, commit=None, rev=6789,  arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testTwoRevisionsAsInterval(self):
-		version1, version2, verbose = self.parser.parse(['-r', '12345:6789'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['-r', '12345:6789'])
 		self.assertVersion(version1, commit=None, rev=12345, arev=None)
 		self.assertVersion(version2, commit=None, rev=6789,  arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testTwoCommits(self):
-		version1, version2, verbose = self.parser.parse(['dead', 'beef'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['dead', 'beef'])
 		self.assertVersion(version1, commit='dead', rev=None, arev=None)
 		self.assertVersion(version2, commit='beef', rev=None,  arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testAssumedRevisionForSecondCommit1(self):
-		version1, version2, verbose = self.parser.parse(['--assume-rev2=666'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['--assume-rev2=666'])
 		self.assertVersion(version1, commit=None, rev=None, arev=None)
 		self.assertVersion(version2, commit=None, rev=None, arev=666)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testAssumedRevisionForSecondCommit2(self):
-		version1, version2, verbose = self.parser.parse(['--assume-rev2', '666'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['--assume-rev2', '666'])
 		self.assertVersion(version1, commit=None, rev=None, arev=None)
 		self.assertVersion(version2, commit=None, rev=None, arev=666)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testAssumedRevisionForSecondCommit3(self):
-		version1, version2, verbose = self.parser.parse(['--r2=666'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['--r2=666'])
 		self.assertVersion(version1, commit=None, rev=None, arev=None)
 		self.assertVersion(version2, commit=None, rev=None, arev=666)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testAssumedRevisionForSecondCommit4(self):
-		version1, version2, verbose = self.parser.parse(['--r2', '666'])
+		version1, version2, git_diff_options, verbose = self.parser.parse(['--r2', '666'])
 		self.assertVersion(version1, commit=None, rev=None, arev=None)
 		self.assertVersion(version2, commit=None, rev=None, arev=666)
+		self.assertEqual([], git_diff_options)
 		self.assertFalse(verbose)
 
 	def testTooManyArgs1(self):
@@ -312,17 +333,26 @@ class ArgumentsParserTest(unittest.TestCase):
 	def testAssumedRevisionTwice(self):
 		f = lambda: self.parser.parse(['--assume-rev1=12345', '--assume-rev1=6789'])
 		self.assertRaises(Exception, f)
-
-	def testVerbose(self):
-		version1, version2, verbose = self.parser.parse(['-v'])
+	
+	def testOptionsForGitDiff(self):
+		version1, version2, git_diff_options, verbose = self.parser.parse(['-x', '--someoption', '--another-option=value'])
 		self.assertVersion(version1, commit=None, rev=None, arev=None)
 		self.assertVersion(version2, commit=None, rev=None, arev=None)
+		self.assertEqual(['-x', '--someoption', '--another-option=value'], git_diff_options)
+		self.assertFalse(verbose)
+
+	def testVerbose(self):
+		version1, version2, git_diff_options, verbose = self.parser.parse(['-v'])
+		self.assertVersion(version1, commit=None, rev=None, arev=None)
+		self.assertVersion(version2, commit=None, rev=None, arev=None)
+		self.assertEqual([], git_diff_options)
 		self.assertTrue(verbose)
 
-	def testComplete(self):
-		version1, version2, verbose = self.parser.parse(['deadbeef', 'r123', '-v', '--assume-rev1', '666'])
+	def testSeveralArguments(self):
+		version1, version2, git_diff_options, verbose = self.parser.parse(['deadbeef', 'r123', '-v', '--assume-rev1', '666', '--xyz'])
 		self.assertVersion(version1, commit='deadbeef', rev=None, arev=666)
 		self.assertVersion(version2, commit=None,       rev=123,  arev=None)
+		self.assertEqual(['--xyz'], git_diff_options)
 		self.assertTrue(verbose)
 
 	def assertVersion(self, version, commit, rev, arev):

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from collections import namedtuple
 import re
 import subprocess
 import sys
@@ -49,7 +50,7 @@ class DiffTransformer(object):
 
 def main():
 	args_parser = ArgumentsParser()
-	version1, version2, verbose = args_parser.parse(sys.argv[1:])
+	version1, version2, git_diff_options, verbose = args_parser.parse(sys.argv[1:])
 	
 	convert_from_pipe = convert_from_pipe_arguments(version1, version2)
 	
@@ -64,7 +65,7 @@ def main():
 		if version2.commit is not None:
 			commits.append(version2.commit)
 		
-		cmd = ['git', 'diff', '--no-prefix'] + commits
+		cmd = ['git', 'diff', '--no-prefix'] + git_diff_options + commits
 		if verbose:
 			print('Executing %r' % cmd, file=sys.stderr)
 		process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -85,6 +86,9 @@ class Version(object):
 		self.assumed_revision = assumed_revision
 
 
+ParsedArguments = namedtuple('ParsedArguments', 'version1,version2,git_diff_options,verbose')
+
+
 class ArgumentsParser(object):
 	
 	def __init__(self):
@@ -94,6 +98,8 @@ class ArgumentsParser(object):
 	def parse(self, arguments):
 		self._versions = Version(), Version()
 		self._arguments = list(arguments)
+		
+		git_diff_options = []
 		
 		verbose = False
 	
@@ -143,7 +149,7 @@ class ArgumentsParser(object):
 				show_help()
 				sys.exit()
 			elif arg.startswith('-'):
-				raise Exception("Unknown argument: %r" % arg)
+				git_diff_options.append(arg)
 			else:
 				self._set_commit(arg)
 	
@@ -153,7 +159,13 @@ class ArgumentsParser(object):
 	
 		assert (self._versions[0].commit is None) or (self._versions[0].revision is None)
 		assert (self._versions[1].commit is None) or (self._versions[1].revision is None)
-		return self._versions[0], self._versions[1], verbose
+		
+		return ParsedArguments(
+				version1=self._versions[0],
+				version2=self._versions[1],
+				git_diff_options=git_diff_options,
+				verbose=verbose
+		)
 	
 	@staticmethod
 	def _is_defined(version):
@@ -260,7 +272,7 @@ def show_help():
 	"""Generate an SVN-formated diff.
 
 Commands:
-	git_svn_diff.py [-v] [<version> [<version>]]
+	git_svn_diff.py [-v] [<git-diff-options>] [<version> [<version>]]
 		Compare two versions.
 
 	git diff <options> | git_svn_diff.py [-v] --assume-rev1=REV1 [--assume-rev2=REV2]

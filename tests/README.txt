@@ -6,7 +6,7 @@ To create a new test case:
 		cp /tmp/repo-<something>-svn/svn.diff expected/<new-test-case>.diff
 	- Add the test method test<NewTestCase> to run_tests.py
 	- Execute the test:
-		./run_tests.py Test.test<NewTestCase>
+		./run_tests.py DiffTransformationTest.test<NewTestCase>
 	- Make it work!
 		Somewhere in the console output the temporary directory
 		/tmp/repo-<something>-git/ is mentioned. This directory contains:
