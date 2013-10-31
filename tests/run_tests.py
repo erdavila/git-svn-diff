@@ -289,7 +289,7 @@ class ArgumentsParserTest(unittest.TestCase):
 	def testTwoCommits(self):
 		version1, version2, git_diff_options, paths, verbose = self.parser.parse(['dead', 'beef'])
 		self.assertVersion(version1, commit='dead', rev=None, arev=None)
-		self.assertVersion(version2, commit='beef', rev=None,  arev=None)
+		self.assertVersion(version2, commit='beef', rev=None, arev=None)
 		self.assertEqual([], git_diff_options)
 		self.assertEqual([], paths)
 		self.assertFalse(verbose)
@@ -322,6 +322,38 @@ class ArgumentsParserTest(unittest.TestCase):
 		version1, version2, git_diff_options, paths, verbose = self.parser.parse(['--r2', '666'])
 		self.assertVersion(version1, commit=None, rev=None, arev=None)
 		self.assertVersion(version2, commit=None, rev=None, arev=666)
+		self.assertEqual([], git_diff_options)
+		self.assertEqual([], paths)
+		self.assertFalse(verbose)
+
+	def testAssumedRevisionAsWorkingDir1(self):
+		version1, version2, git_diff_options, paths, verbose = self.parser.parse(['dead', 'beef', '--assume-rev2=-'])
+		self.assertVersion(version1, commit='dead', rev=None, arev=None)
+		self.assertVersion(version2, commit='beef', rev=None, arev='-')
+		self.assertEqual([], git_diff_options)
+		self.assertEqual([], paths)
+		self.assertFalse(verbose)
+
+	def testAssumedRevisionAsWorkingDir2(self):
+		version1, version2, git_diff_options, paths, verbose = self.parser.parse(['dead', 'beef', '--assume-rev2', '-'])
+		self.assertVersion(version1, commit='dead', rev=None, arev=None)
+		self.assertVersion(version2, commit='beef', rev=None, arev='-')
+		self.assertEqual([], git_diff_options)
+		self.assertEqual([], paths)
+		self.assertFalse(verbose)
+
+	def testAssumedRevisionAsWorkingDir3(self):
+		version1, version2, git_diff_options, paths, verbose = self.parser.parse(['dead', 'beef', '--r2=-'])
+		self.assertVersion(version1, commit='dead', rev=None, arev=None)
+		self.assertVersion(version2, commit='beef', rev=None, arev='-')
+		self.assertEqual([], git_diff_options)
+		self.assertEqual([], paths)
+		self.assertFalse(verbose)
+
+	def testAssumedRevisionAsWorkingDir4(self):
+		version1, version2, git_diff_options, paths, verbose = self.parser.parse(['dead', 'beef', '--r2', '-'])
+		self.assertVersion(version1, commit='dead', rev=None, arev=None)
+		self.assertVersion(version2, commit='beef', rev=None, arev='-')
 		self.assertEqual([], git_diff_options)
 		self.assertEqual([], paths)
 		self.assertFalse(verbose)
@@ -423,9 +455,9 @@ class VersionsSolverTest(unittest.TestCase):
 		EXPECTED_REVISION = 321
 		self.version1.commit = EXPECTED_COMMIT
 		self.version1.assumed_revision = EXPECTED_REVISION
-		
+
 		self.solver.solve_version1(self.version1)
-		
+
 		self.assertSolvedVersion(self.version1, commit=EXPECTED_COMMIT, arev=EXPECTED_REVISION)
 
 	def testVersion1AsRevision(self):
@@ -440,7 +472,7 @@ class VersionsSolverTest(unittest.TestCase):
 	def testVersion2Default(self):
 		self.solver.solve_version2(self.version2)
 		
-		self.assertSolvedVersion(self.version2, commit=None,   arev=None)
+		self.assertSolvedVersion(self.version2, commit=None, arev=None)
 	
 	def testVersion2AsCommit(self):
 		EXPECTED_COMMIT = self.getCurrentCommit()
@@ -455,6 +487,16 @@ class VersionsSolverTest(unittest.TestCase):
 		EXPECTED_REVISION = 456
 		self.version2.commit = EXPECTED_COMMIT
 		self.version2.assumed_revision = EXPECTED_REVISION
+		
+		self.solver.solve_version2(self.version2)
+		
+		self.assertSolvedVersion(self.version2, commit=EXPECTED_COMMIT, arev=EXPECTED_REVISION)
+
+	def testVersion2AsCommitWithAssumedRevisionAsWorkingDir(self):
+		EXPECTED_COMMIT = self.getCurrentCommit()
+		EXPECTED_REVISION = None
+		self.version2.commit = EXPECTED_COMMIT
+		self.version2.assumed_revision = '-'
 		
 		self.solver.solve_version2(self.version2)
 		

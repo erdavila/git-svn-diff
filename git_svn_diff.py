@@ -146,25 +146,33 @@ class ArgumentsParser(object):
 				assumed_revision = int(self._next_argument())
 				self._set_assumed_revision(0, assumed_revision)
 			elif arg == '--assume-rev2':
-				assumed_revision = int(self._next_argument())
+				assumed_revision = self._next_argument()
+				if assumed_revision != '-':
+					assumed_revision = int(assumed_revision)
 				self._set_assumed_revision(1, assumed_revision)
 			elif arg == '--r1':
 				assumed_revision = int(self._next_argument())
 				self._set_assumed_revision(0, assumed_revision)
 			elif arg == '--r2':
-				assumed_revision = int(self._next_argument())
+				assumed_revision = self._next_argument()
+				if assumed_revision != '-':
+					assumed_revision = int(assumed_revision)
 				self._set_assumed_revision(1, assumed_revision)
 			elif re.match(r'--assume-rev1=\d+$', arg):
 				assumed_revision = int(arg[14:])
 				self._set_assumed_revision(0, assumed_revision)
-			elif re.match(r'--assume-rev2=\d+$', arg):
-				assumed_revision = int(arg[14:])
+			elif re.match(r'--assume-rev2=(?:\d+|-)$', arg):
+				assumed_revision = arg[14:]
+				if assumed_revision != '-':
+					assumed_revision = int(assumed_revision)
 				self._set_assumed_revision(1, assumed_revision)
 			elif re.match(r'--r1=\d+$', arg):
 				assumed_revision = int(arg[5:])
 				self._set_assumed_revision(0, assumed_revision)
-			elif re.match(r'--r2=\d+$', arg):
-				assumed_revision = int(arg[5:])
+			elif re.match(r'--r2=(?:\d+|-)$', arg):
+				assumed_revision = arg[5:]
+				if assumed_revision != '-':
+					assumed_revision = int(assumed_revision)
 				self._set_assumed_revision(1, assumed_revision)
 			elif arg == '-v':
 				verbose = True
@@ -181,7 +189,7 @@ class ArgumentsParser(object):
 		
 		for version in self._versions:
 			if version.revision is not None and version.assumed_revision is not None:
-				raise Exception("An assumed revision (%d) cannot be used with a revision (%d)" % (version.assumed_revision, version.revision))
+				raise Exception("An assumed revision (%r) cannot be used with a revision (%d)" % (version.assumed_revision, version.revision))
 	
 		assert (self._versions[0].commit is None) or (self._versions[0].revision is None)
 		assert (self._versions[1].commit is None) or (self._versions[1].revision is None)
@@ -254,9 +262,11 @@ class VersionsSolver(object):
 		assert (version2.revision is None) or (version2.assumed_revision is None)
 		
 		self._solve_common(version2)
-		
-		assert (version2.commit is None) == (version2.assumed_revision is None)
-		
+		if version2.assumed_revision == '-':
+			version2.assumed_revision = None
+
+		assert (version2.commit is not None) or (version2.assumed_revision is None)
+
 	def _solve_common(self, version):
 		assert (version.commit is None) or (version.revision is None)
 		assert (version.revision is None) or (version.assumed_revision is None)
@@ -306,7 +316,7 @@ Commands:
 		Convert a Git diff to SVN diff.
 
 	A version may be either:
-		* An SVN revision REV specified in either form:
+		* An SVN revision number REV specified in either form:
 			-r REV
 			rREV
 		  When comparing two SVN revisions REV1 and REV2, they can be specified with the argument:
@@ -317,11 +327,12 @@ Commands:
 			--assume-rev1=REV1 (for the first version to compare)
 			--assume-rev2=REV2 (for the second version to compare)
 		  If not specifying an assumed revision, then the repository must be a git-svn repository and the commit must have been fetched from or dcommitted to an SVN server.
+		  If REV2 is -, then the SVN diff output will report comparisons as if they were against the working dir.
 	
 	If the first version is not informed, the HEAD commit is considered.
 	If the second version is not informed, the working dir is considered.
 
-	In the second form, if --assume-rev2 (or --r2) is not specified, the working dir is considered as the second version.
+	In the second form, if --assume-rev2 is not specified, the working dir is considered as the second version.
 
 	The options --assume-rev1 and --assume-rev2 can be passed as --r1 and --r2.
 
