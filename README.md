@@ -7,7 +7,7 @@ Installation
 I suggest two alternatives:
 * Copy the `git_svn_diff.py` file to some directory in your `$PATH`
 * Or create a Git alias:
-  `git config alias.svn-diff '!<PATH-TO>/git_svn_diff.py'`
+  `git config --global alias.svn-diff '!<PATH-TO>/git_svn_diff.py'`
 
 Usage
 -----
